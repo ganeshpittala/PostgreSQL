@@ -1,0 +1,255 @@
+JOB deatils
+• Installing and configuring the PostgreSQL DB in multi-node and multisite environment. Reviews database design and integration of systems and makes recommendations regarding enhancements and/or improvements.
+• Installing and configuring connection pooling tools like PgPool and PgBouncer.
+• Installing and configuring the High Availability in Postgres SQL like Streaming replication, Hoststandby, warmstandby. Maintenance of PostgreSQL master-slave clusters utilizing streaming replication
+• Installing and configuring the PostgreSQL Monitoring tools like PEM and AppD.
+• Online Migration of SQL Server and Oracle Database to the PostgreSQL database using replication tools.
+• Hands-on experience on database administration, backup recovery and troubleshooting in co-location environments. Performing schema management, database sizing, maintaining privileges.
+• Monitoring databases to optimize database performance and diagnosing any issues.
+• Implement and monitor replication for high availability and disaster recovery scenarios.
+• Monitor and manage database indexes for optimal performance. Query optimization and troubleshooting.
+• Proactive in updating the latest security patches to Enterprise PostgreSQL database.
+• Configuring log analyzation tools like pgfouine and pgbadger etc.
+• Working closely with development team for code migration, performance testing.
+• Expertise on EDB PostgreSQL, load testing and DevOps methodology are added advantage.
+
+select Version();
+12.4
+
+ps -ef | grep postgres
+ps -ef | grep 2074
+==============================================================
+Commands that we have used in this installation
+$ sudo apt-get update
+$sudo apt-get install postgresql postgresql-contrib
+$ls /etc/postgresql/12/main
+
+$service postgresql
+Usage: /etc/init.d/postgresql {start|stop|restart|reload|force-reload|status} [version ..]
+
+$service postgresql status
+12/main (port 5433): down
+
+$sudo su postgres
+Rajani@1
+============================================
+go to root sudo su
+then start the services if it ask for password
+
+============================================
+$service postgresql start
+
+#$sudo su postgres
+$psql
+==================================================================
+Admin 
+Environement variables
+
+DataDirectory
+select setting from pg_settings where name ='data_directory';
+or show data_directory;
+ /var/lib/postgresql/12/main
+
+hba -post base authentication
+select setting from pg_settings where name ='%hba%';
+or 
+show hba_file;
+ /etc/postgresql/12/main/pg_hba.conf
+
+Ident
+select setting from pg_settings where name like'%ident%';
+show ident_file;
+
+DB Owner Change
+alter database test owner to user_1;
+
+find tablesize
+\dt+ actor
+select pg_relation_size('actor');
+select pg_size_pretty(pg_relation_size('actor'));
+
+Alter Database
+ alter database ganesh rename to Rajani;
+
+find databases
+\l
+select * from pg_database;
+
+Find server uptime
+select date_trunc('second',current_timestamp-pg_postmaster_start_time()) as "PostgreSQL Uptime";
+
+select pg_postmaster_start_time();
+select current_timestamp;
+
+owner change
+alter user ganesh nologin;
+Reassign owned by ganesh to rajani;
+
+
+
+
+
+
+==================================================================
+
+postgres=#
+--list of databases
+\l
+
+--list of users
+\du
+
+--Change DB
+\c test
+
+--Clear Screen
+\! clear
+
+--Change password
+ALTER USER postgres WITH PASSWORD 'test123';
+
+
+--Create new user
+CREATE USER user_1 WITH PASSWORD 'test1234';
+
+--Grant permissions (Superuser, Create role, Create DB, Replication, Bypass RLS)
+ALTER USER user_1 WITH SUPERUSER;
+
+--Drop user
+DROP USER user_2;
+
+--Open another terminel Help
+man psql
+
+--Create Database
+ create database tes;
+
+-Drop DB
+drop database tes;
+
+--connected to database 
+postgres=# \c postgres;
+
+
+
+DB Restore
+C:\Program Files\PostgreSQL\10\bin>pg_restore -U postgres -p 5433 -d test C:\Ganesh\dvdrental.tar
+postgres
+test123
+
+pg_dump  -d test -p 5433 -U postgres -t actor -f /etc/temp/actor.txt
+
+
+
+Backup
+===========
+Cold Backup shutdown the entire cluster
+1.pg_ctl -D\cl1 stop
+2.copy entire cluster device to Backup folder (Additional tablespace folder also copy to backup device)
+3.pg_ctl -D\cl1 start
+
+you can closed from Backup to cl1
+
+Hot Backup
+============
+cluster folder +tablespace folder -->Backup device
+
+WAL
+====
+WAL -write ahead logging
+put the cluster in WAL mode so that it wont miss any transactions
+===========================================================================================
+1.Backups
+postgres@CORP-LT9345P4X:/tmp/backup$ pg_dump -U postgres -d test -W >/tmp/backup/test$(date +%Y-%m-%d_%H_%M_%S).sql
+Password:
+
+2.SCP
+postgres@mongodb1:/opt/PGBACKUPS$ scp -p r2schools2020-01-07_10_39_00.sql root@mongodb2:/home/r2schools/backups/
+root@mongodb2's password:
+r2schools2020-01-07_10_39_00.sql                                                            100%   16KB   7.7MB/s   00:00
+postgres@mongodb1:/opt/PGBACKUPS$
+
+3.Permissions
+pg_dumpall -r > roles$(date +%Y-%m-%d_%H_%M_%S).txt
+
+4.restore
+psql -d rajani < test2020-09-18_11_20_11.sql
+
+5.Apply permissions
+psql <roles2020-09-18_11_21_01.txt
+
+
+PG_DUMP UTILITY to take backup
+There are 4 formats
+1.plain text (SQL statements)
+   only one tale can take backup ->	pg_dump -d test -U postgres -p5432 -t table -f table1_backup_date.sql
+   multiple tables can take backups ->	pg_dump -d test -U postgres -p5432 -t table1 -t table1  -f tables_backup_date.sql   
+   Only schema backups 		->	pg_dump -d test -U postgres -p5432 -n schema -f schema_backup_date.sql   
+   Taking backups in plain formar ->	pg_dump -d test -U postgres -p5432 --inserts -f test_backup_date.sql   
+
+
+
+
+2.Custom format(compressed and developed by postgres team)
+	pg_dump -d test -U postgres -p5432 -f /Backup/testdir__date -j 3  
+	pg_dumpall -d test -U postgres -p5432 -f cluster_backup_date.sql
+
+3.Tar Archive formar (Devloped linux team)
+
+4.Directory Format (increase the speed of the backup multiple stripes)
+
+
+Restoring Backup
+pg_restore -d test -p 5432 -Fd /backup/table_date
+Fc abnd 
+
+
+
+===========================================================================================
+
+HOT backup
+==============
+cluster folder +tablespace folder + WAL Files -->Backup device
+
+WAL files stores in pg_wal
+
+put cluster in WAL Mode
+postgresql.conf
+wal_level=replica
+archive_mode=on
+
+
+pg_xlog
+
+Automated Utility(set your cluster as streaming replication mode)
+pg_basebackup -p 5432 -U postgres -D /Backup/cluster/1907 -Fp -X -xlogdir=/backup/cluster/1907/wal
+
+===========================================================================================
+
+Kill the process
+
+select * from pg_stat_activity;
+select datname,pid,username,query from pg_stat_activity;
+
+select pg_cancel_backend(1210);
+select pg_terminate_backend(1210);
+
+select pid,now() - pg_stat_activity.query_start AS duration,query,state from pg_stat_activity where now()-pg_stat_activity.query_start as duration> interval '5 minutes';
+
+
+Fatal ident authentication failed user
+-------------------------------------------
+psql -h localhost -p 5432 -d test -u user_1
+error?
+
+edit hba_file to resolve isse update ident to passwoord
+show hba_file;
+\q
+vi pg_hba.conf
+effect restart or reload service
+pg_ctl reload;
+select pg_reload_conf();
+
+
+su - postgres -c "psql -t -P format=unaligned -c 'show hba_file';"
+select * from pg_settings where name='config_file'
